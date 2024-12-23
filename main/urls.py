@@ -5,6 +5,7 @@ app_name = 'main'
 
 urlpatterns = [
     # Problem views
+    path('', views.problem_list, name='problem_list'),
     path('problems/', views.problem_list, name='problem_list'),
     path('problems/my/', views.my_problems, name='my_problems'),
     path('problems/create/', views.problem_create, name='problem_create'),
