@@ -9,7 +9,6 @@ from django.utils import timezone
 from .lib.grader import GraderManager
 from .models import Problem, Submission, TestCase
 
-@login_required(login_url="/auth/login")
 def problem_list(request):
     problems = Problem.objects.all().order_by('id')
     return render(request, 'problem_list.html', {
