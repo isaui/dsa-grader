@@ -1,0 +1,543 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ problem.title }} - Grader Ganteng{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
+{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+{% csrf_token %}
+
+<div class="container mx-auto px-4 py-8">
+    <!-- Problem Specification -->
+    <div class="bg-white shadow-sm rounded-lg overflow-hidden mb-8">
+        <div class="border-b border-gray-200 bg-gray-50 px-4 py-5 sm:px-6">
+            <h1 class="text-2xl font-bold text-gray-900">{{ problem.title }}</h1>
+            <div class="mt-2 flex gap-4 text-sm text-gray-600">
+                <div class="flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Time Limit: {{ problem.time_limit }}s</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Memory Limit: {{ problem.memory_limit }}MB</span>
+                </div>
+            </div>
+        </div>
+        <div class="px-4 py-5 sm:px-6">
+            <div class="prose max-w-none">
+                {{ problem.description|linebreaks }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Code Submission Section -->
+    <div class="bg-white shadow-sm rounded-lg overflow-hidden mb-8">
+        <div class="border-b border-gray-200 px-4 py-4">
+            <div class="flex gap-4">
+                <button id="editorTab" 
+                        class="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white">
+                    Code Editor
+                </button>
+                <button id="fileTab" 
+                        class="px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">
+                    File Upload
+                </button>
+            </div>
+        </div>
+
+        <div class="p-4">
+            <!-- Code Editor -->
+            <div id="editorSection">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                    <select id="languageSelect" 
+                            class="w-full px-3 py-2 border rounded-md border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="cpp">C++</option>
+                        <option value="c">C</option>
+                    </select>
+                </div>
+                <div id="editor" class="border rounded-md" style="height: 500px;"></div>
+            </div>
+
+            <!-- File Upload -->
+            <div id="fileSection" class="hidden">
+                <input type="file" 
+                       id="codeFile" 
+                       accept=".py,.java,.cpp,.c"
+                       class="block w-full text-sm text-gray-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-md file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-blue-50 file:text-blue-700
+                              hover:file:bg-blue-100">
+                <p class="mt-2 text-sm text-gray-500">
+                    Supported formats: .py, .java, .cpp, .c
+                </p>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="mt-4">
+                <button id="submitBtn" 
+                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Submit Solution
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submission History -->
+    <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+        <div class="border-b border-gray-200 bg-gray-50 px-4 py-5 sm:px-6">
+            <h3 class="text-lg font-medium text-gray-900">Submission History</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Submitted At
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Language
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Test Results
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for submission in submissions %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ submission.submitted_at|date:"Y-m-d H:i:s" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full font-medium bg-gray-100 text-gray-800">
+                                {{ submission.language|upper }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                                {% if submission.status == 'COMPLETED' %}bg-green-100 text-green-800
+                                {% elif submission.status == 'FAILED' %}bg-red-100 text-red-800
+                                {% elif submission.status == 'QUEUED' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ submission.status }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="space-y-1">
+                                {% for result in submission.test_results.all %}
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 text-xs rounded-full font-medium
+                                        {% if result.status == 'AC' %}bg-green-100 text-green-800
+                                        {% elif result.status == 'WA' %}bg-red-100 text-red-800
+                                        {% elif result.status == 'TLE' %}bg-yellow-100 text-yellow-800
+                                        {% elif result.status == 'MLE' %}bg-orange-100 text-orange-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ result.status }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">
+                                        {{ result.execution_time|floatformat:3 }}s
+                                    </span>
+                                    <span class="text-xs text-gray-500">
+                                        {{ result.memory_used|floatformat:1 }}MB
+                                    </span>
+                                    {% if result.error_message %}
+                                    <span class="text-xs text-red-600 truncate max-w-md" title="{{ result.error_message }}">
+                                        {{ result.error_message }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-sm text-center text-gray-500">
+                            No submissions yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } };</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.nls.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let editor;
+    const editorTab = document.getElementById('editorTab');
+    const fileTab = document.getElementById('fileTab');
+    const editorSection = document.getElementById('editorSection');
+    const fileSection = document.getElementById('fileSection');
+    const submitBtn = document.getElementById('submitBtn');
+    const codeFile = document.getElementById('codeFile');
+    const languageSelect = document.getElementById('languageSelect');
+
+    // Initialize Monaco Editor
+
+    require(['vs/editor/editor.main'], function() {
+    // Language Snippets
+    const languageSnippets = {
+        'python': {
+            'for': {
+                insertText: 'for ${1:item} in ${2:items}:\n\t${0}',
+                documentation: 'For loop statement'
+            },
+            'if': {
+                insertText: 'if ${1:condition}:\n\t${0}',
+                documentation: 'If statement'
+            },
+            'def': {
+                insertText: 'def ${1:function_name}(${2:parameters}):\n\t${0}',
+                documentation: 'Function definition'
+            },
+            'class': {
+                insertText: 'class ${1:ClassName}:\n\t${0}',
+                documentation: 'Class definition'
+            },
+            'while': {
+                insertText: 'while ${1:condition}:\n\t${0}',
+                documentation: 'While loop'
+            },
+            'try': {
+                insertText: 'try:\n\t${1:pass}\nexcept ${2:Exception} as ${3:e}:\n\t${0}',
+                documentation: 'Try-except block'
+            }
+        },
+        'java': {
+            'main': {
+                insertText: 'public static void main(String[] args) {\n\t${0}\n}',
+                documentation: 'Main method'
+            },
+            'sout': {
+                insertText: 'System.out.println(${1});',
+                documentation: 'Print to console'
+            },
+            'for': {
+                insertText: 'for (int ${1:i} = 0; ${1:i} < ${2:length}; ${1:i}++) {\n\t${0}\n}',
+                documentation: 'For loop'
+            },
+            'foreach': {
+                insertText: 'for (${1:Type} ${2:item} : ${3:items}) {\n\t${0}\n}',
+                documentation: 'For-each loop'
+            },
+            'if': {
+                insertText: 'if (${1:condition}) {\n\t${0}\n}',
+                documentation: 'If statement'
+            },
+            'class': {
+                insertText: 'public class ${1:${TM_FILENAME_BASE}} {\n\t${0}\n}',
+                documentation: 'Class definition'
+            },
+            'psvm': {
+                insertText: 'public static void main(String[] args) {\n\t${0}\n}',
+                documentation: 'Main method'
+            }
+        },
+        'cpp': {
+            'main': {
+                insertText: 'int main() {\n\t${0}\n\treturn 0;\n}',
+                documentation: 'Main function'
+            },
+            'for': {
+                insertText: 'for (int ${1:i} = 0; ${1:i} < ${2:length}; ${1:i}++) {\n\t${0}\n}',
+                documentation: 'For loop'
+            },
+            'if': {
+                insertText: 'if (${1:condition}) {\n\t${0}\n}',
+                documentation: 'If statement'
+            },
+            'cout': {
+                insertText: 'cout << ${1} << endl;',
+                documentation: 'Print to console'
+            },
+            'cin': {
+                insertText: 'cin >> ${1};',
+                documentation: 'Read from console'
+            },
+            'class': {
+                insertText: 'class ${1:ClassName} {\npublic:\n\t${0}\n};',
+                documentation: 'Class definition'
+            }
+        },
+        'c': {
+            'main': {
+                insertText: 'int main() {\n\t${0}\n\treturn 0;\n}',
+                documentation: 'Main function'
+            },
+            'for': {
+                insertText: 'for (int ${1:i} = 0; ${1:i} < ${2:length}; ${1:i}++) {\n\t${0}\n}',
+                documentation: 'For loop'
+            },
+            'if': {
+                insertText: 'if (${1:condition}) {\n\t${0}\n}',
+                documentation: 'If statement'
+            },
+            'printf': {
+                insertText: 'printf("${1:%d}\\n", ${2});',
+                documentation: 'Print to console'
+            },
+            'scanf': {
+                insertText: 'scanf("${1:%d}", &${2});',
+                documentation: 'Read from console'
+            }
+        }
+    };
+
+    // Language Keywords
+    const languageKeywords = {
+        'python': [
+            'and', 'as', 'assert', 'break', 'class', 'continue', 'def', 'del',
+            'elif', 'else', 'except', 'False', 'finally', 'for', 'from', 'global',
+            'if', 'import', 'in', 'is', 'lambda', 'None', 'nonlocal', 'not', 'or',
+            'pass', 'raise', 'return', 'True', 'try', 'while', 'with', 'yield'
+        ],
+        'java': [
+            'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch',
+            'char', 'class', 'const', 'continue', 'default', 'do', 'double',
+            'else', 'enum', 'extends', 'final', 'finally', 'float', 'for', 'if',
+            'implements', 'import', 'instanceof', 'int', 'interface', 'long',
+            'native', 'new', 'package', 'private', 'protected', 'public',
+            'return', 'short', 'static', 'strictfp', 'super', 'switch',
+            'synchronized', 'this', 'throw', 'throws', 'transient', 'try',
+            'void', 'volatile', 'while'
+        ],
+        'cpp': [
+            'auto', 'break', 'case', 'char', 'class', 'const', 'continue',
+            'default', 'delete', 'do', 'double', 'else', 'enum', 'explicit',
+            'export', 'extern', 'float', 'for', 'friend', 'goto', 'if', 'inline',
+            'int', 'long', 'namespace', 'new', 'operator', 'private', 'protected',
+            'public', 'register', 'return', 'short', 'signed', 'sizeof', 'static',
+            'struct', 'switch', 'template', 'this', 'throw', 'try', 'typedef',
+            'union', 'unsigned', 'using', 'virtual', 'void', 'volatile', 'while'
+        ],
+        'c': [
+            'auto', 'break', 'case', 'char', 'const', 'continue', 'default',
+            'do', 'double', 'else', 'enum', 'extern', 'float', 'for', 'goto',
+            'if', 'inline', 'int', 'long', 'register', 'restrict', 'return',
+            'short', 'signed', 'sizeof', 'static', 'struct', 'switch', 'typedef',
+            'union', 'unsigned', 'void', 'volatile', 'while'
+        ]
+    };
+
+    // Create editor
+    editor = monaco.editor.create(document.getElementById('editor'), {
+        value: '# Write your code here\n',
+        language: 'python',
+        theme: 'vs-dark',
+        fontSize: 14,
+        minimap: { enabled: false },
+        automaticLayout: true,
+        tabSize: 4,
+        insertSpaces: true,
+        rulers: [80],
+        wordWrap: 'on',
+        scrollBeyondLastLine: false,
+        suggestOnTriggerCharacters: true,
+        quickSuggestions: {
+            other: true,
+            comments: true,
+            strings: true
+        },
+        acceptSuggestionOnEnter: "on",
+        tabCompletion: "on",
+        wordBasedSuggestions: true,
+        suggestSelection: "first",
+    });
+
+    // Register completion provider for each language
+    ['python', 'java', 'cpp', 'c'].forEach(language => {
+        monaco.languages.registerCompletionItemProvider(language, {
+            provideCompletionItems: function(model, position) {
+                const textUntilPosition = model.getValueInRange({
+                    startLineNumber: position.lineNumber,
+                    startColumn: 1,
+                    endLineNumber: position.lineNumber,
+                    endColumn: position.column
+                });
+
+                const suggestions = [];
+
+                // Add language keywords
+                languageKeywords[language].forEach(keyword => {
+                    suggestions.push({
+                        label: keyword,
+                        kind: monaco.languages.CompletionItemKind.Keyword,
+                        insertText: keyword
+                    });
+                });
+
+                // Add snippets
+                const snippets = languageSnippets[language];
+                Object.keys(snippets).forEach(key => {
+                    suggestions.push({
+                        label: key,
+                        kind: monaco.languages.CompletionItemKind.Snippet,
+                        insertText: snippets[key].insertText,
+                        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                        documentation: snippets[key].documentation,
+                        detail: snippets[key].documentation
+                    });
+                });
+
+                // Add variable suggestions from current file
+                const text = model.getValue();
+                let variableRegex;
+                if (language === 'python') {
+                    variableRegex = /([a-zA-Z_]\w*)\s*=/g;
+                } else {
+                    variableRegex = /(?:int|float|double|char|string|boolean|long)\s+([a-zA-Z_]\w*)/g;
+                }
+                
+                let match;
+                while (match = variableRegex.exec(text)) {
+                    suggestions.push({
+                        label: match[1],
+                        kind: monaco.languages.CompletionItemKind.Variable
+                    });
+                }
+
+                return { suggestions: suggestions };
+            }
+        });
+    });
+
+    // Default templates for each language
+    const defaultTemplates = {
+        'python': '# Write your Python code here\n',
+        'java': 'public class Solution {\n    public static void main(String[] args) {\n        // Write your Java code here\n    }\n}',
+        'cpp': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your C++ code here\n    return 0;\n}',
+        'c': '#include <stdio.h>\n\nint main() {\n    // Write your C code here\n    return 0;\n}'
+    };
+
+    // Update editor language and template when language changes
+    languageSelect.addEventListener('change', function() {
+        const language = this.value;
+        monaco.editor.setModelLanguage(editor.getModel(), language);
+        editor.setValue(defaultTemplates[language]);
+    });
+    });
+
+    // Tab switching
+    editorTab.addEventListener('click', () => {
+        editorTab.classList.add('bg-blue-600', 'text-white');
+        editorTab.classList.remove('bg-gray-100', 'text-gray-700');
+        fileTab.classList.remove('bg-blue-600', 'text-white');
+        fileTab.classList.add('bg-gray-100', 'text-gray-700');
+        editorSection.classList.remove('hidden');
+        fileSection.classList.add('hidden');
+    });
+
+    fileTab.addEventListener('click', () => {
+        fileTab.classList.add('bg-blue-600', 'text-white');
+        fileTab.classList.remove('bg-gray-100', 'text-gray-700');
+        editorTab.classList.remove('bg-blue-600', 'text-white');
+        editorTab.classList.add('bg-gray-100', 'text-gray-700');
+        fileSection.classList.remove('hidden');
+        editorSection.classList.add('hidden');
+    });
+
+    // Submit handler
+    submitBtn.addEventListener('click', async () => {
+        let formData = new FormData();
+
+        try {
+            if (fileSection.classList.contains('hidden')) {
+                // Using code editor
+                const code = editor.getValue();
+                if (!code.trim()) {
+                    alert('Please enter your code');
+                    return;
+                }
+                formData.append('code', code);
+                formData.append('language', languageSelect.value);
+            } else {
+                // Using file upload
+                if (!codeFile.files.length) {
+                    alert('Please select a file');
+                    return;
+                }
+                formData.append('file', codeFile.files[0]);
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="animate-pulse">Submitting...</span>';
+
+            const response = await fetch("{% url 'main:submit_solution' problem.id %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Create status indicator
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-md shadow-lg z-50';
+                statusDiv.innerHTML = 'Checking submission status...';
+                document.body.appendChild(statusDiv);
+
+                // Start polling for results
+                const pollInterval = setInterval(async () => {
+                    console.log("pool....")
+                    try {
+                        const statusResponse = await fetch(`{% url 'main:submission_status' 0 %}`.replace('0', data.submission_id));
+                        const statusData = await statusResponse.json();
+
+                        if (statusData.status === 'COMPLETED' || statusData.status === 'FAILED') {
+                            clearInterval(pollInterval);
+                            statusDiv.remove();
+                            window.location.href = window.location.href;
+                        } else {
+                            // Update status message
+                            statusDiv.innerHTML = `Status: ${statusData.status}`;
+                        }
+                    } catch (error) {
+                        clearInterval(pollInterval);
+                        statusDiv.remove();
+                        console.log('Error checking submission status');
+                    }
+                }, 3000);
+            } else {
+                console.log(data.message || 'Submission failed');
+            }
+        } catch (error) {
+            console.error('Submission error:', error);
+            alert('Error submitting solution');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Submit Solution';
+        }
+    });
+});
+</script>
+{% endblock %}

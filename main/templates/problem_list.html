@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Problems - Grader Ganteng{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b">
+            <h2 class="text-xl font-semibold text-gray-900">Problems</h2>
+        </div>
+        <div class="divide-y divide-gray-200 min-h-screen">
+            {% for problem in problems %}
+            <div class="p-4 hover:bg-gray-50 transition-colors">
+                <a href="{% url 'main:problem_detail' problem.id %}" class="block">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">{{ problem.title }}</h3>
+                            <p class="mt-1 text-sm text-gray-500 line-clamp-2">{{ problem.description|truncatewords:30 }}</p>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <div class="flex space-x-4">
+                                <span>Time: {{ problem.time_limit }}s</span>
+                                <span>Memory: {{ problem.memory_limit }}MB</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% empty %}
+            <div class="p-4 text-center text-gray-500">
+                No problems available yet.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+{% endblock %}

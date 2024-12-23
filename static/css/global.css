@@ -1,0 +1,39 @@
+/* Form Styles */
+.form-input {
+    @apply w-full px-3 py-2 border-2 border-gray-300 rounded-md;
+}
+
+.form-input:focus {
+    @apply outline-none border-purple-600 ring-2 ring-purple-600 ring-opacity-50;
+}
+
+.form-textarea {
+    @apply w-full px-3 py-2 border-2 border-gray-300 rounded-md;
+}
+
+.form-textarea:focus {
+    @apply outline-none border-purple-600 ring-2 ring-purple-600 ring-opacity-50;
+}
+
+.form-select {
+    @apply w-full px-3 py-2 border-2 border-gray-300 rounded-md;
+}
+
+.form-select:focus {
+    @apply outline-none border-purple-600 ring-2 ring-purple-600 ring-opacity-50;
+}
+
+/* Animation */
+@keyframes shine {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.animate-shine {
+    background: linear-gradient(120deg, 
+        rgba(255, 255, 255, 0.3), 
+        rgba(255, 255, 255, 0.1) 50%, 
+        rgba(255, 255, 255, 0.3));
+    background-size: 200% 100%;
+    animation: shine 3s infinite;
+}

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}My Problems - Grader Ganteng{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center">
+            <h1 class="text-xl font-semibold text-gray-900">My Problems</h1>
+            <a href="{% url 'main:problem_create' %}" 
+               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                Create Problem
+            </a>
+        </div>
+
+        <div class="divide-y divide-gray-200 min-h-screen">
+            {% for problem in problems %}
+            <div class="p-4 hover:bg-gray-50 transition-colors">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-lg font-medium text-gray-900">
+                            <a href="{% url 'main:problem_detail' problem.id %}" class="hover:text-blue-600">
+                                {{ problem.title }}
+                            </a>
+                        </h2>
+                        <div class="mt-2 flex gap-4 text-sm text-gray-500">
+                            <span>Time Limit: {{ problem.time_limit }}s</span>
+                            <span>Memory Limit: {{ problem.memory_limit }}MB</span>
+                        </div>
+                    </div>
+                    <a href="{% url 'main:problem_update' problem.id %}" 
+                       class="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-500">
+                        Edit
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-8 text-center text-gray-500">
+                <p>You haven't created any problems yet.</p>
+                <a href="{% url 'main:problem_create' %}" 
+                   class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    Create Your First Problem
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+{% endblock %}

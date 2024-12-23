@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if mode == 'create' %}Create Problem{% else %}Edit Problem{% endif %} - Grader Ganteng
+{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <h1 class="text-xl font-semibold text-gray-900">
+                    {% if mode == 'create' %}Create New Problem{% else %}Edit Problem{% endif %}
+                </h1>
+            </div>
+
+            <div class="px-4 py-5 sm:p-6 bg-gray-200 rounded-lg">
+                <form id="problemForm" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Basic Info -->
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
+                        <input type="text" 
+                               name="title" 
+                               id="title"
+                               required
+                               class="mt-1 block w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                               value="{{ problem.title|default:'' }}"
+                               placeholder="Problem title">
+                    </div>
+
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="description" 
+                                  id="description"
+                                  required
+                                  class="hidden">{{ problem.description|default:'' }}</textarea>
+                        <div id="markdownEditor"></div>
+                    </div>
+
+                    <!-- Limits -->
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="timeLimit" class="block text-sm font-medium text-gray-700">Time Limit (seconds)</label>
+                            <input type="number" 
+                                   name="time_limit" 
+                                   id="timeLimit"
+                                   required
+                                   step="0.1"
+                                   min="0.1"
+                                   class="mt-1 block w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                   value="{{ problem.time_limit|default:'1.0' }}">
+                        </div>
+
+                        <div>
+                            <label for="memoryLimit" class="block text-sm font-medium text-gray-700">Memory Limit (MB)</label>
+                            <input type="number" 
+                                   name="memory_limit" 
+                                   id="memoryLimit"
+                                   required
+                                   min="1"
+                                   class="mt-1 block w-full rounded-md p-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                   value="{{ problem.memory_limit|default:256 }}">
+                        </div>
+                    </div>
+
+                    <!-- Test Cases -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <label class="block text-sm font-medium text-gray-700">Test Cases</label>
+                            <button type="button" 
+                                    id="addTestCase"
+                                    class="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-500">
+                                + Add Test Case
+                            </button>
+                        </div>
+                        
+                        <div id="testCasesContainer" class="space-y-4 bg-gray-300 rounded-md">
+                            {% if problem %}
+                                {% for test_case in problem.test_cases.all %}
+                                <div class="test-case border rounded-md p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm font-medium text-gray-700">Test Case #{{ forloop.counter }}</span>
+                                        <button type="button" 
+                                                class="remove-test-case px-2 py-1 text-sm text-red-600 hover:text-red-500">
+                                            Remove
+                                        </button>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Input</label>
+                                            <textarea class="test-case-input mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                      rows="3"
+                                                      placeholder="Input..."
+                                                      required>{{ test_case.input_data }}</textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Expected Output</label>
+                                            <textarea class="test-case-output mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                      rows="3"
+                                                      placeholder="Expected Output..."
+                                                      required>{{ test_case.expected_output }}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-5">
+                        <div class="flex justify-end gap-3">
+                            <button type="button" 
+                                    onclick="window.location.href='{% url 'main:problem_list' %}'"
+                                    class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                    class="rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                {% if mode == 'create' %}Create Problem{% else %}Update Problem{% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.css">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const simplemde = new SimpleMDE({
+        element: document.getElementById("description"),
+        autoDownloadFontAwesome: true,
+        forceSync: true, // Sync content to <textarea> for form submission
+        toolbar: [
+            "bold", "italic", "heading", "|", 
+            "quote", "unordered-list", "ordered-list", "|",
+            "link", "image", "|",
+            "preview", "side-by-side", "fullscreen", "|", 
+            "guide"
+        ]
+    });
+
+    const form = document.getElementById('problemForm');
+    const addTestCaseBtn = document.getElementById('addTestCase');
+    const testCasesContainer = document.getElementById('testCasesContainer');
+
+    // Add new test case
+    addTestCaseBtn.addEventListener('click', () => {
+        const testCaseCount = testCasesContainer.children.length + 1;
+        const testCaseHtml = `
+            <div class="test-case border rounded-md p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-gray-700">Test Case #${testCaseCount}</span>
+                    <button type="button" 
+                            class="remove-test-case px-2 py-1 text-sm text-red-600 hover:text-red-500">
+                        Remove
+                    </button>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Input</label>
+                        <textarea class="test-case-input mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                  rows="3"
+                                  placeholder="Input..."
+                                  required></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Expected Output</label>
+                        <textarea class="test-case-output mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                  rows="3"
+                                  placeholder="Expected Output..."
+                                  required></textarea>
+                    </div>
+                </div>
+            </div>
+        `;
+        testCasesContainer.insertAdjacentHTML('beforeend', testCaseHtml);
+    });
+
+    // Remove test case
+    testCasesContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-test-case')) {
+            e.target.closest('.test-case').remove();
+            // Update test case numbers
+            document.querySelectorAll('.test-case').forEach((tc, index) => {
+                tc.querySelector('span').textContent = `Test Case #${index + 1}`;
+            });
+        }
+    });
+
+    // Form submission
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Collect test cases
+        const testCases = Array.from(document.querySelectorAll('.test-case')).map(tc => ({
+            input: tc.querySelector('.test-case-input').value,
+            output: tc.querySelector('.test-case-output').value
+        }));
+
+        // Create problem data
+        const problemData = {
+            title: document.getElementById('title').value,
+            description: simplemde.value(),
+            time_limit: parseFloat(document.getElementById('timeLimit').value),
+            memory_limit: parseInt(document.getElementById('memoryLimit').value),
+            test_cases: testCases
+        };
+
+        try {
+            const url = {% if mode == 'create' %}
+                "{% url 'main:problem_create' %}"
+            {% else %}
+                "{% url 'main:problem_update' problem.id %}"
+            {% endif %};
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(problemData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                window.location.href = "{% url 'main:problem_list' %}";
+            } else {
+                alert(data.message || 'Failed to save problem');
+            }
+        } catch (error) {
+            alert('Error saving problem');
+        }
+    });
+
+    // Add initial test case if none exists
+    if (testCasesContainer.children.length === 0) {
+        addTestCaseBtn.click();
+    }
+});
+</script>
+{% endblock %}
